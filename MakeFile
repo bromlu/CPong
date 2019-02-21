@@ -1,0 +1,15 @@
+INCLUDE_SFML = -lsfml-graphics -lsfml-window -lsfml-system -I/usr/local/Cellar/sfml/2.4.2_1/lib/
+INCLUDE_SFML_EXTRAS = -lsfml-audio -lsfml-network
+STDFLAG = -stdlib=libc++
+
+
+pong: pong.cpp
+	g++ -stdlib=libc++ -o pong pong.cpp -lsfml-graphics -lsfml-window -lsfml-system -I/usr/local/Cellar/sfml/2.4.2_1/lib/
+	# g++  -o pong pong.cpp $(STDFLAG) $(INCLUDE_SFML) $(INCLUDE_SFML_EXTRAS)
+
+.PHONY: clean
+clean:
+	rm pong *.o
+
+
+
