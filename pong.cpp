@@ -25,6 +25,7 @@ class Ball {
         this->screenHeight = screenHeight;
         this->speed = speed;
         this->radius = radius;
+        this->color = color;
 
         setupBall();
     }
@@ -40,6 +41,8 @@ class Ball {
         if(distance > screenWidth/2) {
             setupBall();
         } else {
+            float vx = speed * cos(angle);
+            float vy = speed * -sin(angle);
             circle.move(vx, vy);
         }
     }
@@ -48,9 +51,32 @@ class Ball {
         window->draw(circle);
     }
 
-    void bounce() {
-        vx = vx * -1;
-        vy = vy * -1;
+    void bounce(float angle) {
+        this->angle += angle * 2;
+        //Top Left
+        // if (getX() <= screenWidth/2 && getY() <= screenHeight/2) {
+        //     vx = speed * cos(angle) * 1.4;
+        //     vy = speed * sin(angle) * 1.4;
+        // }
+        // //Bottom Left
+        // else if (getX() <= screenWidth/2 && getY() >= screenHeight/2) {
+        //     vx = speed * cos(angle) * 1.4;
+        //     vy = speed * sin(angle) * 1.4;
+        // }
+        // //Bottom Right
+        // else if (getX() >= screenWidth/2 && getY() >= screenHeight/2) {
+        //     vx = speed * -cos(angle) * 1.4;
+        //     vy = speed * -sin(angle) * 1.4;
+        // }
+        // //Top Right
+        // else {
+        //     vx = speed * -cos(angle) * 1.4;
+        //     vy = speed * -sin(angle) * 1.4;
+        // }
+    }
+
+    void setColor(sf::Color color) {
+        circle.setFillColor(color);
     }
 
     float getX() {
@@ -68,18 +94,16 @@ class Ball {
     private:
 
     void setupBall() {
-        circle.setPosition(screenHeight/2, screenWidth/2);
-        int angle = rand() % 360;
-        vx = cos(angle * M_PI / 180.0) * speed;
-        vy = sin(angle * M_PI / 180.0) * speed;
+        circle.setFillColor(color);
+        circle.setPosition(screenHeight/2-radius, screenWidth/2-radius);
+        angle = rand() % 360 * M_PI / 180.0;
     }
 
     sf::CircleShape circle;
     sf::Color color;
-    int vx;
-    int vy;
     int screenWidth;
     int screenHeight;
+    float angle;
     float radius;
     float speed;
 };
@@ -87,7 +111,7 @@ class Ball {
 class Paddle {
     public: 
 
-    Paddle(int screenWidth, int screenHeight, int radius, sf::Color color, double angle = 0, int width = 20, int height = 200) {
+    Paddle(int screenWidth, int screenHeight, int radius, sf::Color color, float angle = 0, int width = 20, int height = 200) {
         this->color = color;
         this->angle = angle;
         this->radius = radius;
@@ -105,17 +129,17 @@ class Paddle {
     }
 
     void moveUp() {
-            angle-= 0.05;
+            angle-= 0.03;
             move();
     }
 
     void moveDown() {
-            angle+= 0.05;
+            angle+= 0.03;
             move();
     }
 
     bool isInside(float x, float y, float radius, sf::RenderWindow *window) {
-        double closestX, closestY;
+        float closestX, closestY;
 
         sf::CircleShape center(5.0f);
         center.setPosition(this->getX(), this->getY());
@@ -150,14 +174,29 @@ class Paddle {
         
         
         float distance = sqrt(pow(abs(closestX - x),2.0) + pow(abs(closestY - y),2.0));
-        if (distance < radius)
+        if (distance < radius) {
             return true;
-        else
+        }
+        else {
             return false;
+        }
     }
 
-    double getAngle() {
+    float getBounceAngle(float x, float y, sf::RenderWindow *window) {
+        float relative_intersect_y = getCenterY() - y;
+        float normalized_intersect_y = relative_intersect_y/(height/2);
+        float angle = normalized_intersect_y * (4*M_PI);
+        printf("Relative Y:%f\n", relative_intersect_y);
+        printf("Angle:%f\n", (angle * (180/M_PI)));
+        return angle;
+    }
+
+    float getAngle() {
         return rect.getRotation() * (M_PI / 180);
+    }
+
+    sf::Color getColor() {
+        return color;
     }
 
     float getX() {
@@ -178,7 +217,7 @@ class Paddle {
 
     private:
 
-    double angle;
+    float angle;
     int radius;
     int width;
     int height;
@@ -194,24 +233,20 @@ class Paddle {
     }
 };
 
-bool checkCollision(Ball *ball, Paddle *paddle, sf::RenderWindow *window) {
+void handleCollision(Ball *ball, Paddle *paddle, sf::RenderWindow *window) {
     float centerX = paddle->getCenterX();
     float centerY = paddle->getCenterY();
-    sf::CircleShape center(3.0f);
-    center.setPosition(centerX, centerY);
-    center.setFillColor(sf::Color::Green);
-    window->draw(center);
     float angle = -paddle->getAngle();
     float ballx = ball->getX();
     float bally = ball->getY();
 
-    float unrotatedCircleX;
-    float unrotatedCircleY;
+    float unrotatedCircleX = cos(angle) * (ballx - centerX) - sin(angle) * (bally - centerY) + centerX;
+    float unrotatedCircleY  = sin(angle) * (ballx - centerX) + cos(angle) * (bally - centerY) + centerY;
 
-    unrotatedCircleX = cos(angle) * (ballx - centerX) - sin(angle) * (bally - centerY) + centerX;
-    unrotatedCircleY  = sin(angle) * (ballx - centerX) + cos(angle) * (bally - centerY) + centerY;
-
-    return paddle->isInside(unrotatedCircleX, unrotatedCircleY, ball->getRadius(), window);
+    if(paddle->isInside(unrotatedCircleX, unrotatedCircleY, ball->getRadius(), window)) {
+        ball->setColor(paddle->getColor());
+        ball->bounce(paddle->getBounceAngle(unrotatedCircleX, unrotatedCircleY, window));
+    }
 }
 
 int main()
@@ -223,6 +258,12 @@ int main()
     arena.setOutlineColor(sf::Color::White);
     arena.setOutlineThickness(3.0);
     arena.setFillColor(sf::Color::Black);
+
+    sf::CircleShape center(40.0);
+    center.setPosition(WIDTH/2 - 40.0, HEIGHT/2 - 40.0);
+    center.setOutlineColor(sf::Color::White);
+    center.setOutlineThickness(3.0);
+    center.setFillColor(sf::Color::Black);
 
     Paddle p1 = Paddle(WIDTH, HEIGHT, WIDTH/2, sf::Color::Red, 0.0);
     Paddle p2 = Paddle(WIDTH, HEIGHT, WIDTH/2, sf::Color::Blue, M_PI);
@@ -261,18 +302,15 @@ int main()
 
         window.clear();
         window.draw(arena);
+        window.draw(center);
         p1.draw(&window);
         p2.draw(&window);
         ball.update();
         ball.draw(&window);
 
-        if(checkCollision(&ball, &p1, &window)) {
-            ball.bounce();
-        }
-        if(checkCollision(&ball, &p2, &window)) {
-            ball.bounce();
-        }
-
+        handleCollision(&ball, &p1, &window);
+        handleCollision(&ball, &p2, &window);
+        
         window.display();
     }
 
