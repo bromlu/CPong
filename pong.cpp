@@ -246,6 +246,10 @@ int main()
     center.setOutlineThickness(3.0);
     center.setFillColor(sf::Color::Black);
 
+    sf::RectangleShape rect(sf::Vector2f(40.0 * 2, 40.0 * 2));
+    rect.setPosition(WIDTH/2 - 40.0, HEIGHT/2 - 40.0);
+    rect.setFillColor(sf::Color::Black);
+
     Paddle p1 = Paddle(WIDTH, HEIGHT, WIDTH/2, sf::Color::Red, 0.0);
     Paddle p2 = Paddle(WIDTH, HEIGHT, WIDTH/2, sf::Color::Blue, M_PI);
     Ball ball = Ball(WIDTH, HEIGHT, sf::Color::White, 10.0, 5.0);
@@ -284,6 +288,8 @@ int main()
         window.clear();
         window.draw(arena);
         window.draw(center);
+        window.draw(rect);
+
         p1.draw(&window);
         p2.draw(&window);
         ball.update();
