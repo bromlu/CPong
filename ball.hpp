@@ -5,6 +5,8 @@
 class Ball {
     public:
 
+    Ball() {}
+
     Ball(int screenWidth, int screenHeight, sf::Color color, float radius = 10.0, float speed = 10.0) {
         this->circle = sf::CircleShape(radius);
         this->circle.setFillColor(color);

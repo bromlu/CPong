@@ -1,6 +1,8 @@
 class Text {
     public: 
 
+    Text() {}
+
     Text(std::string text, float x, float y, float size, sf::Font *font, sf::Color color) {
         this->text = sf::Text();
         this->text.setFont(*font);

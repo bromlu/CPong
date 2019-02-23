@@ -3,6 +3,8 @@
 class Paddle {
     public: 
 
+    Paddle() {}
+
     Paddle(std::string name, int id, int screenWidth, int screenHeight, int radius, sf::Color color, float angle = 0, int width = 20, int height = 200) {
         this->color = color;
         this->angle = angle;
