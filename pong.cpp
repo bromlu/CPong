@@ -103,7 +103,7 @@ class Ball {
 class Paddle {
     public: 
 
-    Paddle(int screenWidth, int screenHeight, int radius, sf::Color color, float angle = 0, int width = 20, int height = 200) {
+    Paddle(char* name, int screenWidth, int screenHeight, int radius, sf::Color color, float angle = 0, int width = 20, int height = 200) {
         this->color = color;
         this->angle = angle;
         this->radius = radius;
@@ -111,9 +111,12 @@ class Paddle {
         this->height = height;
         this->collision = false;
         this->hadCollision = false;
+        this->collideUp = false;
+        this->collideDown = false;
         this->rect = sf::RectangleShape(sf::Vector2f(width, height));
         this->rect.setFillColor(color);
         this->rect.setOrigin(sf::Vector2f(width/2, height/2));
+        this->name = name;
 
         move();
     }
@@ -122,14 +125,38 @@ class Paddle {
         window->draw(this->rect);
     }
 
-    void moveUp() {
-            angle-= 0.03;
-            move();
+    void moveUp(Paddle *paddle = NULL) {
+        if(paddle == NULL) {
+            angle -= 0.03;
+        } else {
+            bool collision = paddleCollision(paddle);
+            if(collideDown) {
+                moveUp();
+            } else if(collision && !paddle->getCollideUp()) {
+                paddle->moveUp();
+                collideUp = true;
+            } else if(!paddle->getCollideUp()) {
+                moveUp();
+            }
+        }
+        move();
     }
 
-    void moveDown() {
-            angle+= 0.03;
-            move();
+    void moveDown(Paddle *paddle = NULL) {
+        if(paddle == NULL) {
+            angle += 0.03;
+        } else {
+            bool collision = paddleCollision(paddle);
+            if(collideUp) {
+                moveDown();
+            } else if(collision && !paddle->getCollideDown()) {
+                paddle->moveDown();
+                collideDown = true;
+            } else if(!paddle->getCollideUp()) {
+                moveDown();
+            }
+        }
+        move();
     }
 
     void setCollision(float x, float y, float radius) {
@@ -194,16 +221,47 @@ class Paddle {
         return collision;
     }
 
+    bool getCollideDown() {
+        return collideDown;
+    }
+
+    bool getCollideUp() {
+        return collideUp;
+    }
+
+    void resetCollision() {
+        collideDown = false;
+        collideUp = false;
+    }
+
     private:
 
     bool collision;
     bool hadCollision;
+    bool collideDown;
+    bool collideUp;
     float angle;
     int radius;
     int width;
     int height;
+    char* name;
     sf::Color color;
     sf::RectangleShape rect;
+
+    bool paddleCollision(Paddle *paddle) {
+        float x1 = this->getCenterX();
+        float y1 = this->getCenterY();
+        float x2 = paddle->getCenterX();
+        float y2 = paddle->getCenterY();
+        float distance = sqrt(pow(abs(x1 - x2),2.0) + pow(abs(y1 - y2),2.0));
+        if(distance <= 212.3) {
+            return true;
+        } else if (distance >= 700.0) {
+            resetCollision();
+            paddle->resetCollision();
+        }
+        return false;
+    }
 
     void move() {
         angle = fmod(angle, TAU);
@@ -250,8 +308,8 @@ int main()
     rect.setPosition(WIDTH/2 - 40.0, HEIGHT/2 - 40.0);
     rect.setFillColor(sf::Color::Black);
 
-    Paddle p1 = Paddle(WIDTH, HEIGHT, WIDTH/2, sf::Color::Red, 0.0);
-    Paddle p2 = Paddle(WIDTH, HEIGHT, WIDTH/2, sf::Color::Blue, M_PI);
+    Paddle p1 = Paddle("RED", WIDTH, HEIGHT, WIDTH/2, sf::Color::Red, 0.0);
+    Paddle p2 = Paddle("BLUE", WIDTH, HEIGHT, WIDTH/2, sf::Color::Blue, M_PI);
     Ball ball = Ball(WIDTH, HEIGHT, sf::Color::White, 10.0, 5.0);
 
     double last = 0.0;
@@ -270,19 +328,19 @@ int main()
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
         {
-            p1.moveDown();
-        }
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-        {
-            p1.moveUp();
+            p1.moveDown(&p2);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
         {
-            p2.moveDown();
+            p2.moveDown(&p1);
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        {
+            p1.moveUp(&p2);
         }
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
         {
-            p2.moveUp();
+            p2.moveUp(&p1);
         }
 
         window.clear();
