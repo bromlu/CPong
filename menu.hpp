@@ -9,7 +9,7 @@ class Menu {
         this->lastMoved = now();
         this->lastSelected = now();
 
-        title = Text("Pong Spike", width/2, height/5, 150, font, sf::Color::White);
+        title = Text("Spike Pong", width/2, height/5, 150, font, sf::Color::White);
         by = Text("By Luke Brom", width/2, height/5 + 120, 40, font, sf::Color::White);
 
         play = Text("Play", width/2, height/2 - 110, 75, font, sf::Color::White);
