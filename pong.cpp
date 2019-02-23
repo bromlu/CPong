@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <math.h>
 #include <ctime>
+#include <string.h>
 
 #define WIDTH 1200
 #define HEIGHT 1200
@@ -26,23 +27,13 @@ class Ball {
         this->speed = speed;
         this->radius = radius;
         this->color = color;
+        this->ownerId = 0;
 
         setupBall();
     }
 
     void update() {
-        float centerX = screenWidth/2.0;
-        float centerY = screenHeight/2.0;
-        float x = circle.getPosition().x;
-        float y = circle.getPosition().y;
-
-        float distance = sqrt(pow(abs(centerX - x),2.0) + pow(abs(centerY - y),2.0));
-
-        if(distance > screenWidth/2) {
-            setupBall();
-        } else {
-            circle.move(vx, vy);
-        }
+        circle.move(vx, vy);
     }
 
     void draw(sf::RenderWindow *window) {
@@ -67,6 +58,14 @@ class Ball {
         circle.setFillColor(color);
     }
 
+    void setOwnerId(int ownerId) {
+        this->ownerId = ownerId;
+    }
+
+    int getOwnerId() {
+        return ownerId;
+    }
+
     float getX() {
         return circle.getPosition().x + radius;
     }
@@ -79,18 +78,20 @@ class Ball {
         return radius;
     }
 
-    private:
-
     void setupBall() {
         circle.setFillColor(color);
         circle.setPosition(screenHeight/2-radius, screenWidth/2-radius);
         angle = rand() % 360 * M_PI / 180.0;
         vx = speed * cos(angle);
         vy = speed * -sin(angle);
+        ownerId = 0;
     }
+
+    private:
 
     sf::CircleShape circle;
     sf::Color color;
+    int ownerId;
     int screenWidth;
     int screenHeight;
     float angle;
@@ -103,7 +104,7 @@ class Ball {
 class Paddle {
     public: 
 
-    Paddle(char* name, int screenWidth, int screenHeight, int radius, sf::Color color, float angle = 0, int width = 20, int height = 200) {
+    Paddle(std::string name, int id, int screenWidth, int screenHeight, int radius, sf::Color color, float angle = 0, int width = 20, int height = 200) {
         this->color = color;
         this->angle = angle;
         this->radius = radius;
@@ -117,6 +118,8 @@ class Paddle {
         this->rect.setFillColor(color);
         this->rect.setOrigin(sf::Vector2f(width/2, height/2));
         this->name = name;
+        this->id = id;
+        this->score = 0;
 
         move();
     }
@@ -135,7 +138,7 @@ class Paddle {
             } else if(collision && !paddle->getCollideUp()) {
                 paddle->moveUp();
                 collideUp = true;
-            } else if(!paddle->getCollideUp()) {
+            } else {
                 moveUp();
             }
         }
@@ -152,7 +155,7 @@ class Paddle {
             } else if(collision && !paddle->getCollideDown()) {
                 paddle->moveDown();
                 collideDown = true;
-            } else if(!paddle->getCollideUp()) {
+            } else {
                 moveDown();
             }
         }
@@ -162,7 +165,6 @@ class Paddle {
     void setCollision(float x, float y, float radius) {
         float closestX, closestY;
  
-        // Find the unrotated closest x point from center of unrotated circle
         if (x  < this->getX())
             closestX = this->getX();
         else if (x  > this->getX() + this->width)
@@ -170,7 +172,6 @@ class Paddle {
         else
             closestX = x ;
         
-        // Find the unrotated closest y point from center of unrotated circle
         if (y < this->getY())
             closestY = this->getY();
         else if (y > this->getY() + this->height)
@@ -191,6 +192,14 @@ class Paddle {
             hadCollision = false;
             collision = false;
         }
+    }
+
+    void increaseScore() {
+        this->score++;
+    }
+
+    int getScore() {
+        return this->score;
     }
 
     float getAngle() {
@@ -229,6 +238,10 @@ class Paddle {
         return collideUp;
     }
 
+    int getId() {
+        return id;
+    }
+
     void resetCollision() {
         collideDown = false;
         collideUp = false;
@@ -244,7 +257,9 @@ class Paddle {
     int radius;
     int width;
     int height;
-    char* name;
+    int score;
+    int id;
+    std::string name;
     sf::Color color;
     sf::RectangleShape rect;
 
@@ -272,6 +287,26 @@ class Paddle {
     }
 };
 
+bool handleScoring(Ball *ball, Paddle *p1, Paddle *p2) {
+    float centerX = WIDTH/2.0;
+    float centerY = HEIGHT/2.0;
+    float x = ball->getX();
+    float y = ball->getY();
+
+    float distance = sqrt(pow(abs(centerX - x),2.0) + pow(abs(centerY - y),2.0));
+
+    if(distance > WIDTH/2) {
+        if(ball->getOwnerId() == p1->getId()) {
+            p1->increaseScore();
+        } else if(ball->getOwnerId() == p2->getId()) {
+            p2->increaseScore();
+        }
+        ball->setupBall();
+        return true;
+    }
+    return false;
+}
+
 void handleCollision(Ball *ball, Paddle *paddle, sf::RenderWindow *window) {
     float centerX = paddle->getCenterX();
     float centerY = paddle->getCenterY();
@@ -284,12 +319,34 @@ void handleCollision(Ball *ball, Paddle *paddle, sf::RenderWindow *window) {
     paddle->setCollision(unrotatedCircleX, unrotatedCircleY, ball->getRadius());
     if(paddle->getCollision()) {
         ball->setColor(paddle->getColor());
+        ball->setOwnerId(paddle->getId());
         ball->bounce(paddle->getCenterX(), paddle->getCenterY());
     }
 }
 
 int main()
 {
+    sf::Font font;
+    if (!font.loadFromFile("assets/ConnectionII.otf"))
+    {
+        printf("Error loading fonts.\n");
+        exit(1);
+    }
+
+    sf::Text PlayerOneScoreText;
+    PlayerOneScoreText.setFont(font);
+    PlayerOneScoreText.setString("0");
+    PlayerOneScoreText.setCharacterSize(150);
+    PlayerOneScoreText.setFillColor(sf::Color::Red);
+    PlayerOneScoreText.setPosition(WIDTH - 180, 5);
+
+    sf::Text PlayerTwoScoreText;
+    PlayerTwoScoreText.setFont(font);
+    PlayerTwoScoreText.setString("0");
+    PlayerTwoScoreText.setCharacterSize(150);
+    PlayerTwoScoreText.setFillColor(sf::Color::Blue);
+    PlayerTwoScoreText.setPosition(50, 5);
+
     srand(now());
 
     sf::RenderWindow window(sf::VideoMode(WIDTH, HEIGHT), "Pong");
@@ -308,11 +365,12 @@ int main()
     rect.setPosition(WIDTH/2 - 40.0, HEIGHT/2 - 40.0);
     rect.setFillColor(sf::Color::Black);
 
-    Paddle p1 = Paddle("RED", WIDTH, HEIGHT, WIDTH/2, sf::Color::Red, 0.0);
-    Paddle p2 = Paddle("BLUE", WIDTH, HEIGHT, WIDTH/2, sf::Color::Blue, M_PI);
-    Ball ball = Ball(WIDTH, HEIGHT, sf::Color::White, 10.0, 5.0);
+    Paddle p1 = Paddle("Player 1", 1, WIDTH, HEIGHT, WIDTH/2, sf::Color::Red, 0.0);
+    Paddle p2 = Paddle("Player 2", 2, WIDTH, HEIGHT, WIDTH/2, sf::Color::Blue, M_PI);
+    Ball ball = Ball(WIDTH, HEIGHT, sf::Color::White, 10.0, 8.0);
 
     double last = 0.0;
+    double lastScored = now();
     while (window.isOpen())
     {
         while(now() - last < (1.0/60.0)){
@@ -342,19 +400,29 @@ int main()
         {
             p2.moveUp(&p1);
         }
+        PlayerOneScoreText.setString(std::to_string(p1.getScore()));
+        PlayerTwoScoreText.setString(std::to_string(p2.getScore()));
 
         window.clear();
+        window.draw(PlayerOneScoreText);
+        window.draw(PlayerTwoScoreText);
         window.draw(arena);
         window.draw(center);
         window.draw(rect);
 
         p1.draw(&window);
         p2.draw(&window);
-        ball.update();
+
+        if(now() - lastScored > (1.5)){
+            ball.update();
+        }
         ball.draw(&window);
 
         handleCollision(&ball, &p1, &window);
         handleCollision(&ball, &p2, &window);
+        if(handleScoring(&ball, &p1, &p2)) {
+            lastScored = now();
+        }
         
         window.display();
     }
