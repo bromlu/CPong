@@ -1,7 +1,9 @@
 class Game {
     public:
 
-    Game(int width, int height, sf::Font *font) {
+    Game() {}
+
+    void init(int width, int height, sf::Font *font) {
         loadAssets();
         this->width = width;
         this->height = height;
@@ -18,7 +20,7 @@ class Game {
         lastScored = now();
     }
 
-    void update() {
+    int update() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
         {
             playerOne.moveDown(&playerTwo);
@@ -49,6 +51,14 @@ class Game {
             this->score.play();
             lastScored = now();
         }
+
+        if(playerOne.getScore() == 10) {
+            return 4;
+        } else if (playerTwo.getScore() == 10) {
+            return 5;
+        }
+
+        return 1;
     }
 
     void draw(sf::RenderWindow *window) {

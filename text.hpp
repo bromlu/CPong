@@ -20,6 +20,10 @@ class Text {
         this->text.setPosition(center(x, y, size, text));
     }
 
+    void changeColor(sf::Color color) {
+        text.setFillColor(color);
+    }
+
     void draw(sf::RenderWindow *window) {
         window->draw(this->text);
     }
