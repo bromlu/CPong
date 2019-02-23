@@ -1,2 +1,4 @@
 pong
 assets/*
+.DS_Store
+*.json

@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <math.h>
 #include <ctime>
 #include <string.h>
@@ -7,6 +8,9 @@
 #define HEIGHT 1200
 #define ONE_BILLION (double)1000000000.0
 #define TAU (double)6.28
+
+sf::Sound bounce;
+sf::Sound score;
 
 /* Return the current time. */
 double now(void)
@@ -321,17 +325,25 @@ void handleCollision(Ball *ball, Paddle *paddle, sf::RenderWindow *window) {
         ball->setColor(paddle->getColor());
         ball->setOwnerId(paddle->getId());
         ball->bounce(paddle->getCenterX(), paddle->getCenterY());
+        bounce.play();
     }
 }
 
 int main()
 {
     sf::Font font;
-    if (!font.loadFromFile("assets/ConnectionII.otf"))
-    {
-        printf("Error loading fonts.\n");
-        exit(1);
-    }
+    font.loadFromFile("assets/ConnectionII.otf");
+    sf::Music music;
+    music.openFromFile("assets/Off_Limits.wav");
+    music.setVolume(50);
+    music.play();
+    sf::SoundBuffer bounceBuffer;
+    bounceBuffer.loadFromFile("assets/sfx_damage_hit1.wav");
+    bounce.setBuffer(bounceBuffer);
+    sf::SoundBuffer scoreBuffer;
+    scoreBuffer.loadFromFile("assets/sfx_sounds_error7.wav");
+    score.setBuffer(scoreBuffer);
+
 
     sf::Text PlayerOneScoreText;
     PlayerOneScoreText.setFont(font);
@@ -421,6 +433,7 @@ int main()
         handleCollision(&ball, &p1, &window);
         handleCollision(&ball, &p2, &window);
         if(handleScoring(&ball, &p1, &p2)) {
+            score.play();
             lastScored = now();
         }
         
